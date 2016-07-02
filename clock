@@ -1,0 +1,140 @@
+source assem
+
+E svnseg 0x7c10
+E DISPRESH 0x7c7b
+E PORTA 0x4000
+E PORTB 0x4001
+E CTRLA 0x4002
+E CTRLB 0x4003
+
+# The clock uses two counters: a high-speed one that counts in units
+# of 2^{-64} seconds and overflows once per second, and a slow-speed
+# one that counts in seconds.  The software has a main loop that takes
+# a fixed number of clock cycles, and increments the high-speed
+# counter by the appropriate amount in each iteration; when the
+# counter overflows, one second is added to the slow-speed counter,
+# and the remainder is kept to contribute to the next second.  The
+# slow-speed counter keeps the time in the format HHMMSS, with the
+# digits represented in BCD.
+
+E dbuf 0x7a
+E time 0x62
+E jiffy 0x66
+E tmpX 0x6a
+
+E . 0x1000
+
+L start
+I   ld SP #0x40
+I   clr A
+I   st A jiffy
+I   st A jiffy+1
+I   st A jiffy+2
+I   st A jiffy+3
+I   st A time
+I   st A time+1
+I   st A time+2
+
+L loop
+# Increment the high-speed counter
+set freq 150.963
+set inc [expr {1.0 / $freq}]
+puts stderr $inc
+set inc [expr {$inc * 256.0}]; 
+set inc3 [expr {int($inc)}]; set inc [expr {($inc - $inc3) * 256.0}]
+set inc2 [expr {int($inc)}]; set inc [expr {($inc - $inc2) * 256.0}]
+set inc1 [expr {int($inc)}]; set inc [expr {($inc - $inc1) * 256.0}]
+set inc0 [expr {int($inc+0.5)}]
+puts stderr [expr {((($inc0/256.0+$inc1)/256.0+$inc2)/256.0+$inc3)/256.0}]
+
+# In the natural order for a big-endian machine ...
+I   ld A jiffy+3
+I   add A #$inc0
+I   st A jiffy+3
+I   ld A jiffy+2
+I   adc A #$inc1
+I   st A jiffy+2
+I   ld A jiffy+1
+I   adc A #$inc2
+I   st A jiffy+1
+I   ld A jiffy
+I   adc A #$inc3
+I   st A jiffy
+
+# Increment the slow-speed counter according to the C flag
+I   ld X #time+2
+I   ld B #0x60
+I   bsr inc
+I   dec X
+I   ld B #0x60
+I   bsr inc
+I   dec X
+I   ld B #0x24
+I   bsr inc
+
+# Convert the time to 7 seg
+I   ld A time
+I   bsr convL
+I   st A dbuf
+I   ld A time
+I   bsr convR
+I   st A dbuf+1
+I   ld A time+1
+I   bsr convL
+I   st A dbuf+2
+I   ld A time+1
+I   bsr convR
+I   st A dbuf+3
+I   ld A time+2
+I   bsr convL
+I   st A dbuf+4
+I   ld A time+2
+I   bsr convR
+I   st A dbuf+5
+I   jsr DISPRESH
+
+# Output sync pulse
+I   clr A
+I   st A CTRLA;		# Address DDRA
+I   ld B #0x80
+I   st B PORTA
+I   ld A #0x4
+I   st A CTRLA;		# Address PORTA
+I   clr A
+I   st A PORTA
+
+I   bra loop
+
+L inc
+I   ld A (X); 		# Use C flag to increment (X) in BCD
+I   adc A #0;		# Perform the increment
+I   daa;                # Adjust for BCD
+I   cmp A B;		# Now see if we have reached the value in B
+I   rol B;		# Put C flag in bottom of B
+I   and B #1;		# Isolate the flag -- 1 if OK or 0 if reached
+I   neg B;		# Extend to all of B -- 0xff or 0
+I   and A B;		# Reset A if necessary -- undocumented!
+I   st A (X);		# Save the result
+I   inc B;		# Convert to carry out -- 0 or 1
+I   ror B;		# Put into C flag
+I   rts
+
+L convL
+I   asr A
+I   asr A
+I   asr A
+I   asr A
+# Fall through
+
+# Convert lower 4 bits of A to seven seg at (X)
+L convR
+I   and A #0xf
+I   ld X #svnseg
+I   st X tmpX
+I   add A tmpX+1; # Assume no carry
+I   st A tmpX+1
+I   ld X tmpX
+I   ld A (X)
+I   rts
+
+fixup; output-c

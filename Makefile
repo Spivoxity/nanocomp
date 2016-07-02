@@ -1,11 +1,5 @@
 all: nanoboot.hex
 
-check: code
-	diff master code
-
-code: rom assem.tcl
-	tclsh rom >code
-
 bootcode.c: clock.m68 assem.tcl
 	tclsh clock.m68 >$@
 
@@ -17,6 +11,12 @@ CFLAGS = -g -Os -Wall -mmcu=$(MCU) $(CGFLAGS) $(DEFINES) $(INCLUDES)
 nanoboot.elf: nanoboot.o bootcode.o
 	avr-gcc -Os -Wl,--gc-sections -mmcu=$(MCU) -o $@ $^ -lm
 	avr-size --format=avr --mcu=$(MCU) $@
+
+check: code
+	diff master code
+
+code: rom.m68 assem.tcl
+	tclsh rom.m68 >code
 
 %.o: %.c
 	avr-gcc $(CFLAGS) -c $< -o $@

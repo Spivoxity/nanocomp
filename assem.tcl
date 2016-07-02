@@ -79,11 +79,31 @@ proc add {f v} {
     }
 }
 
+proc low {f} {
+    switch [lindex $f 0] {
+        K {return [list K [expr {[lindex $f 1]&0xff}]]}
+        V {error "low"}
+    }
+}
+
+proc high {f} {
+    switch [lindex $f 0] {
+        K {return [list K [expr {[lindex $f 1]>>8}]]}
+        V {error "high"}
+    }
+}
+
 # Analyse expression and make a fixup, or fail
 proc eat-expr {exp} {
     alt {
+        { match {lo\((.*)\)} $exp arg
+            set v [eat-expr $arg]
+            return [low $v] }
+        { match {hi\((.*)\)} $exp arg
+            set v [eat-expr $arg]
+            return [high $v] }
         { set v [eat-const $exp]; return [list K $v] }
-        { match {[A-Za-z][A-Za-z0-9]*} $exp;
+        { match {[A-Za-z][A-Za-z0-9]*} $exp
             return [list V $exp 0] }
         { match {(.+)([+-])(.+)} $exp e1 op e2
             set v1 [eat-expr $e1]
@@ -153,7 +173,6 @@ proc fixup {} {
     global fixes
 
     foreach {a s x n} $fixes {
-        puts stderr "fixup $a $s $x $n"
         setval "." $a
         do-use $s [expr {[getval $x] + $n}]
     }
@@ -342,6 +361,7 @@ inst daa [fixed 19]
 inst dec [specific SP 34] [specific X 09] [unary 4a 5a 7a 6a] 
 inst eor [regmem8 A 88 98 b8 a8] [regmem8 B c8 d8 f8 e8]
 inst inc [specific SP 31] [specific X 08] [unary 4c 5c 7c 6c] 
+inst hcf [fixed dd]
 inst jmp [jump 7e 6e]
 inst jsr [jump bd ad]
 inst ld [regmem8 A 86 96 b6 a6] [regmem8 B c6 d6 f6 e6] \

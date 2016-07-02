@@ -1,10 +1,16 @@
 source assem.tcl
 
-E svnseg 0x7c10
-E DISPRESH 0x7c7b
-E KEYHEX 0x7ce4
-E R7SEG 0x7d03
+# Measured update rate
+set freq 151.690; # in Hz
 
+# ROM routines
+E SVNSEG 0x7c10;	# Seven-seg table
+E DISPRESH 0x7c7b;	# Display update
+E KEYHEX 0x7ce4;	# Get key as hex digit
+E R7SEG 0x7d03;		# Convert hex digit to seven-seg
+E GETKEY 0x7c20;	# Get key as scan code
+
+# PIA addresses
 E PORTA 0x4000
 E PORTB 0x4001
 E CTRLA 0x4002
@@ -32,44 +38,52 @@ I   ld SP #0x40
 
 # Prompt for a time
 I   clr A
-I   st A dbuf
+I   st A dbuf;		# Clear display buffer
 I   st A dbuf+1
 I   st A dbuf+2
 I   st A dbuf+3
 I   st A dbuf+4
-I   ld A #0x19
+I   ld A #0x19; 	# Three horizontal lines
 I   st A dbuf+5
 
 I   ld X #dbuf
 I   ld B #2
-I   jsr digit
+I   jsr digit; 		# Tens of hours -- up to 2
 I   asl A
 I   asl A
 I   asl A
 I   asl A
 I   st A time
 I   ld B #9
-I   cmp A #2
+I   cmp A #20
 I   blt small
 I   ld B #3
 L small
-I   jsr digit
+I   jsr digit; 		# Units of hours -- up to 9 or 3
 I   add A time
 I   st A time
 
 I   ld B #5
-I   jsr digit
+I   jsr digit; 		# Tens of minutes -- up to 5
 I   asl A
 I   asl A
 I   asl A
 I   asl A
 I   st A time+1
 I   ld B #9
-I   jsr digit
+I   jsr digit; 		# Units of minutes -- up to 9
 I   add A time+1
 I   st A time+1
 
-# Clear out lower-order bits
+E IKEY 0x32
+
+L waiti
+# Wait for the I key to be pressed
+I   jsr GETKEY
+I   cmp A #IKEY
+I   bne waiti
+
+# Clear out seconds and the fast counter
 I   clr A
 I   st A jiffy
 I   st A jiffy+1
@@ -78,18 +92,20 @@ I   st A jiffy+3
 I   st A time+2
 
 L loop
-# Increment the high-speed counter
-set freq 150.963
-set inc [expr {1.0 / $freq}]
-puts stderr $inc
-set inc [expr {$inc * 256.0}]; 
-set inc3 [expr {int($inc)}]; set inc [expr {($inc - $inc3) * 256.0}]
-set inc2 [expr {int($inc)}]; set inc [expr {($inc - $inc2) * 256.0}]
-set inc1 [expr {int($inc)}]; set inc [expr {($inc - $inc1) * 256.0}]
-set inc0 [expr {int($inc+0.5)}]
-puts stderr [expr {((($inc0/256.0+$inc1)/256.0+$inc2)/256.0+$inc3)/256.0}]
+# The timing loop for the clock.  We rely on the loop taking the same
+# number of cycles every time, so we need to be very careful with
+# conditional branches.
 
-# In the natural order for a big-endian machine ...
+# Calculate the bytes of the increment from the measured update rate
+set inc [expr {1.0 / $freq}]
+# puts stderr $inc
+set inc [expr {$inc * 256.0}]; set inc3 [expr {int($inc)}]
+set inc [expr {($inc - $inc3) * 256.0}]; set inc2 [expr {int($inc)}]
+set inc [expr {($inc - $inc2) * 256.0}]; set inc1 [expr {int($inc)}]
+set inc [expr {($inc - $inc1) * 256.0}]; set inc0 [expr {int($inc+0.5)}]
+# puts stderr [expr {((($inc0/256.0+$inc1)/256.0+$inc2)/256.0+$inc3)/256.0}]
+
+# Increment the high-speed counter byte by byte
 I   ld A jiffy+3
 I   add A #$inc0
 I   st A jiffy+3
@@ -114,7 +130,7 @@ I   dec X
 I   ld B #0x24
 I   bsr inc
 
-# Convert the time to 7 seg
+# Convert the time to 7 segment codes
 I   ld A time
 I   bsr convL
 I   st A dbuf
@@ -133,48 +149,50 @@ I   st A dbuf+4
 I   ld A time+2
 I   bsr convR
 I   st A dbuf+5
-I   jsr DISPRESH
+I   jsr DISPRESH; # Refresh the display
 
-# Output sync pulse
+# Output a sync pulse for calibration
 I   clr A
 I   st A CTRLA;		# Address DDRA
 I   ld B #0x80
-I   st B PORTA
-I   ld A #0x4
-I   st A CTRLA;		# Address PORTA
-I   clr A
-I   st A PORTA
+I   st B PORTA;		# High-order bit as output
+I   ld B #0x4
+I   st B CTRLA;		# Address PORTA
+I   st A PORTA;		# Force the bit low
 
 I   bra loop
 
 L inc
-I   ld A (X); 		# Use C flag to increment (X) in BCD
+# Add the C flag to the BCD byte at (X), with overflow at B
+I   ld A (X); 		# Fetch the byte from (X)
 I   adc A #0;		# Perform the increment
 I   daa;                # Adjust for BCD
 I   cmp A B;		# Now see if we have reached the value in B
 I   rol B;		# Put C flag in bottom of B
 I   and B #1;		# Isolate the flag -- 1 if OK or 0 if reached
 I   neg B;		# Extend to all of B -- 0xff or 0
-I   and A B;		# Reset A if necessary -- undocumented!
+I   and A B;		# Reset A if necessary -- undocumented instructon!
 I   st A (X);		# Save the result
-I   inc B;		# Convert to carry out -- 0 or 1
-I   ror B;		# Put into C flag
+I   sub B #1;		# Set C if B=0
 I   rts
 
+# The ROM routines L7SEG and R7SEG are unusable because of variable timing
+
 L convL
+# Convert high-order digit of A to seven seg code
 I   asr A
 I   asr A
 I   asr A
 I   asr A
 # Fall through
 
-# Convert lower 4 bits of A to seven seg at (X)
 L convR
+# Convert low-order digit of A to seven seg code
 I   and A #0xf
-I   ld X #svnseg
-I   st X tmpX
-I   add A tmpX+1; # Assume no carry
+I   add A #lo(SVNSEG)
 I   st A tmpX+1
+I   ld A #hi(SVNSEG)
+I   st A tmpX
 I   ld X tmpX
 I   ld A (X)
 I   rts

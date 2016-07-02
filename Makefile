@@ -3,11 +3,11 @@ all: nanoboot.hex
 check: code
 	diff master code
 
-code: rom assem
+code: rom assem.tcl
 	tclsh rom >code
 
-bootcode.c: clock assem
-	tclsh clock >$@
+bootcode.c: clock.m68 assem.tcl
+	tclsh clock.m68 >$@
 
 MCU = attiny85
 CGFLAGS = -fno-exceptions -ffunction-sections -fdata-sections
@@ -26,5 +26,8 @@ nanoboot.elf: nanoboot.o bootcode.o
 
 upload: nanoboot.hex force
 	avrdude -p$(MCU) -cusbtiny -Uflash:w:$<:i
+
+clean: force
+	rm -f nanoboot.hex nanoboot.elf *.o bootcode.c code
 
 force:

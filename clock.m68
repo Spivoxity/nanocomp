@@ -1,7 +1,10 @@
-source assem
+source assem.tcl
 
 E svnseg 0x7c10
 E DISPRESH 0x7c7b
+E KEYHEX 0x7ce4
+E R7SEG 0x7d03
+
 E PORTA 0x4000
 E PORTB 0x4001
 E CTRLA 0x4002
@@ -26,13 +29,52 @@ E . 0x1000
 
 L start
 I   ld SP #0x40
+
+# Prompt for a time
+I   clr A
+I   st A dbuf
+I   st A dbuf+1
+I   st A dbuf+2
+I   st A dbuf+3
+I   st A dbuf+4
+I   ld A #0x19
+I   st A dbuf+5
+
+I   ld X #dbuf
+I   ld B #2
+I   jsr digit
+I   asl A
+I   asl A
+I   asl A
+I   asl A
+I   st A time
+I   ld B #9
+I   cmp A #2
+I   blt small
+I   ld B #3
+L small
+I   jsr digit
+I   add A time
+I   st A time
+
+I   ld B #5
+I   jsr digit
+I   asl A
+I   asl A
+I   asl A
+I   asl A
+I   st A time+1
+I   ld B #9
+I   jsr digit
+I   add A time+1
+I   st A time+1
+
+# Clear out lower-order bits
 I   clr A
 I   st A jiffy
 I   st A jiffy+1
 I   st A jiffy+2
 I   st A jiffy+3
-I   st A time
-I   st A time+1
 I   st A time+2
 
 L loop
@@ -135,6 +177,20 @@ I   add A tmpX+1; # Assume no carry
 I   st A tmpX+1
 I   ld X tmpX
 I   ld A (X)
+I   rts
+
+L digit
+# Get a digit as a keypress; limit in B; update display at (X)
+I   push B
+I   jsr KEYHEX
+I   pop B
+I   cmp A B
+I   bgt digit
+I   push A
+I   jsr R7SEG
+I   st A (X)
+I   inc X
+I   pop A
 I   rts
 
 fixup; output-c

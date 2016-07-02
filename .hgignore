@@ -1,0 +1,7 @@
+syntax: glob
+code
+nanoboot.elf
+nanoboot.hex
+nanoboot.o
+bootcode.c
+bootcode.o

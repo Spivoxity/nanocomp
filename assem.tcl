@@ -129,7 +129,9 @@ proc do-use {size val} {
                 byte 0
             } else {
                 set a [getval "."]
-                byte [expr {($val - $a - 1) & 0xff}]
+                set off [expr {$val - $a - 1}]
+                if {$off < -128 || $off >= 128} {error "branch oflo"}
+                byte [expr {$off & 0xff}]
             }
         }
     }
@@ -151,6 +153,7 @@ proc fixup {} {
     global fixes
 
     foreach {a s x n} $fixes {
+        puts stderr "fixup $a $s $x $n"
         setval "." $a
         do-use $s [expr {[getval $x] + $n}]
     }
@@ -241,7 +244,7 @@ proc asm-regmem {reg opdir opext opind rands} {
 
 proc asm-mem {opext opind rands} {
     alt {
-        { match "(.+)\(X\)" $rands e1
+        { match "(.+)\\(X\\)" $rands e1
             set off [eat-expr $e1]
             opcode $opind; use 1 $off }
         { match "\\(X\\)" $rands

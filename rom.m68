@@ -267,7 +267,7 @@ I   rts
 
 # 7d2e
 L memdisp
-# Prompt for address with M and display memory contents
+# Prompt for address with 'M' and display memory contents
 I   clr A
 I   st A dbuf+4
 I   ld A #0x6e
@@ -286,7 +286,7 @@ I   st A dbuf+5
 L mem1
 # Check for I key
 I   jsr GETKEY
-I   cmp A #0x32
+I   cmp A #keyI
 I   beq mem2
 I   bsr HEXCON
 I   ld B dbuf+5

@@ -1,3 +1,27 @@
+# M6800 assembler
+
+# The source is written as a TCL script containing a sequence of calls
+# to interface routines:
+#
+# I op args     -- an instruction
+# E name expr   -- define symbol 'name' as the value of 'expr'
+# B val val ... -- assemble a sequence of literal bytes
+# W val val ... -- assemble a sequence of two-byte words
+# L name        -- define a label
+#
+# Use 'E . addr' to set the assembly location
+#
+# Instruction formats are a bit unconventional, in that we write
+#
+# I add A #3
+# I add A 4(X)
+# I add A B
+#
+# for various kinds of ADD instruction
+#
+# Write 'source assem.tcl' at the start and 'fixup; output-c' at the
+# end of the assembly language program
+
 # Exceptions
 
 proc alt {scripts} {

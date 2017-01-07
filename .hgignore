@@ -1,7 +1,6 @@
 syntax: glob
-code
-nanoboot.elf
-nanoboot.hex
+clock-code.c
+clock-code.o
+clock.elf
+clock.hex
 nanoboot.o
-bootcode.c
-bootcode.o

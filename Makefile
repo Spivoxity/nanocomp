@@ -1,16 +1,26 @@
-all: nanoboot.hex
+all: clock.hex
 
-bootcode.c: clock.m68 assem.tcl
-	tclsh clock.m68 >$@
+# AVR executable file in hex format
+%.hex: %.elf
+	avr-objcopy -O ihex -R .eeprom $< $@
+
+# AVR executable file in ELF format
+%.elf: %-code.o nanoboot.o 
+	avr-gcc -Os -Wl,--gc-sections -mmcu=$(MCU) -o $@ $^ -lm
+	avr-size --format=avr --mcu=$(MCU) $@
+
+# AVR object file
+%.o: %.c
+	avr-gcc $(CFLAGS) -c $< -o $@
+
+# M6800 code embedded in C
+%-code.c: %.m68 assem.tcl
+	tclsh $< >$@
 
 MCU = attiny85
 CGFLAGS = -fno-exceptions -ffunction-sections -fdata-sections
 DEFINES = -DF_CPU=8000000L
 CFLAGS = -g -Os -Wall -mmcu=$(MCU) $(CGFLAGS) $(DEFINES) $(INCLUDES)
-
-nanoboot.elf: nanoboot.o bootcode.o
-	avr-gcc -Os -Wl,--gc-sections -mmcu=$(MCU) -o $@ $^ -lm
-	avr-size --format=avr --mcu=$(MCU) $@
 
 check: code
 	diff master code
@@ -18,16 +28,10 @@ check: code
 code: rom.m68 assem.tcl
 	tclsh rom.m68 >code
 
-%.o: %.c
-	avr-gcc $(CFLAGS) -c $< -o $@
-
-%.hex: %.elf
-	avr-objcopy -O ihex -R .eeprom $< $@
-
-upload: nanoboot.hex force
+upload: clock.hex force
 	avrdude -p$(MCU) -cusbtiny -Uflash:w:$<:i
 
 clean: force
-	rm -f nanoboot.hex nanoboot.elf *.o bootcode.c code
+	rm -f *.o clock-code.c clock.elf clock.hex
 
 force:

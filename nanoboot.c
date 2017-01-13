@@ -20,6 +20,13 @@ typedef uint8_t byte;
 
 #define delay_ms _delay_ms
 
+void delay(int ms) {
+     int i;
+
+     for (i = 0; i < ms; i++)
+          delay_ms(1);
+}
+
 #define delay_short() delay_ms(0.25)
 #define delay_long() delay_ms(1.0)
 
@@ -88,7 +95,17 @@ extern int codelen;
 extern byte code[];
 
 int main() {
+     int i;
+
      DDR = _BV(BIT) | _BV(LED);
+
+     for (i = 0; i < 4; i++) {
+          sbi(PORT, LED);
+          delay(250);
+          cbi(PORT, LED);
+          delay(250);
+     }
+
      sbi(PORT, LED);
      bootstrap(code, codelen);
      cbi(PORT, LED);

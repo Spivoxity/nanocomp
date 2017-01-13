@@ -32,11 +32,13 @@ void delay(int ms) {
 
 void sendbit(byte x) {
      if (x) {
+          sbi(PORT, LED);
           out_high();
           delay_short();
           out_low();
           delay_short();
      } else {
+          cbi(PORT, LED);
           out_high();
           delay_long();
           out_low();
@@ -56,13 +58,13 @@ void sendbyte(byte x) {
           sendbit(x & 0x01);
           x >>= 1;
      }
-     sendbit(1);
+     sendbit(1);                // Stop bit
 }
 
      
 void sendblock(int addr, byte *data, int len) {
-     sendbyte(0x53);
-     sendbyte(0x31);
+     sendbyte(0x53);            // 'S'
+     sendbyte(0x31);            // '1'
      
      check = 0;
      sendbyte(len+2);
@@ -106,7 +108,6 @@ int main() {
           delay(250);
      }
 
-     sbi(PORT, LED);
      bootstrap(code, codelen);
      cbi(PORT, LED);
      while (1) { }

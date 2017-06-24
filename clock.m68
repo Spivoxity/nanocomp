@@ -17,7 +17,7 @@ E CTRLA 0x4002
 E CTRLB 0x4003
 
 # The clock uses two counters: a high-speed one that counts in units
-# of 2^{-64} seconds and overflows once per second, and a slow-speed
+# of 2^{-32} seconds and overflows once per second, and a slow-speed
 # one that counts in seconds.  The software has a main loop that takes
 # a fixed number of clock cycles, and increments the high-speed
 # counter by the appropriate amount in each iteration; when the
@@ -55,7 +55,7 @@ I   asl A
 I   asl A
 I   st A time
 I   ld B #9
-I   cmp A #20
+I   cmp A #0x20
 I   blt small
 I   ld B #3
 L small

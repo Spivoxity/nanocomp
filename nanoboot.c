@@ -89,8 +89,8 @@ void bootstrap(byte *data, int len) {
           addr += block; data += block; len -= block;
      }
 
-     sendbyte(0x53);
-     sendbyte(0x4a);
+     sendbyte(0x53);            // 'S'
+     sendbyte(0x4a);            // 'J'
 }
 
 extern int codelen;

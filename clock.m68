@@ -171,7 +171,7 @@ I   cmp A B;		# Now see if we have reached the value in B
 I   rol B;		# Put C flag in bottom of B
 I   and B #1;		# Isolate the flag -- 1 if OK or 0 if reached
 I   neg B;		# Extend to all of B -- 0xff or 0
-I   and A B;		# Reset A if necessary -- undocumented instructon!
+I   and A B;		# Reset A if necessary -- undocumented instruction!
 I   st A (X);		# Save the result
 I   sub B #1;		# Set C if B=0
 I   rts

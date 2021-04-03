@@ -1,877 +1,877 @@
 source assem.tcl
 
-E PIA 0x4000
-E PORTA 0x4000
-E PORTB 0x4001
-E CTRLA 0x4002
-E CTRLB 0x4003
+    .equ PIA 0x4000
+    .equ PORTA 0x4000
+    .equ PORTB 0x4001
+    .equ CTRLA 0x4002
+    .equ CTRLB 0x4003
 
 # Page 0 addresses
-E count 0x6b
-E tmp2 0x6c
-E tmp3 0x6d
-E chksum 0x6d
-E ptr 0x6e
-E addr 0x70
-E nmivec 0x72
-E irqvec 0x74
-E tmpX 0x76
-E usrsp 0x78
-E dbuf 0x7a
+    .equ count 0x6b
+    .equ tmp2 0x6c
+    .equ tmp3 0x6d
+    .equ chksum 0x6d
+    .equ ptr 0x6e
+    .equ addr 0x70
+    .equ nmivec 0x72
+    .equ irqvec 0x74
+    .equ tmpX 0x76
+    .equ usrsp 0x78
+    .equ dbuf 0x7a
 
 # Scan codes
-E keyCN 0x25
-E keyG 0x35
-E keyI 0x32
-E keyL 0x05
-E keyM 0x31
-E keyP 0x15
-E keyR 0x30
+    .equ keyCN 0x25
+    .equ keyG 0x35
+    .equ keyI 0x32
+    .equ keyL 0x05
+    .equ keyM 0x31
+    .equ keyP 0x15
+    .equ keyR 0x30
 
-E . 0x7c00
-L keycode
-B 0x22 0x24 0x02 0x12 0x14 0x00 0x10 0x04 
-B 0x01 0x11 0x03 0x13 0x23 0x33 0x21 0x20
+    .equ . 0x7c00
+keycode:
+    .byte 0x22 0x24 0x02 0x12 0x14 0x00 0x10 0x04 
+    .byte 0x01 0x11 0x03 0x13 0x23 0x33 0x21 0x20
 
-L svnseg
-B 0x7e 0x06 0x5b 0x1f 0x27 0x3d 0x7d 0x0e 
-B 0x7f 0x3f 0x6f 0x75 0x78 0x57 0x79 0x69
+svnseg:
+    .byte 0x7e 0x06 0x5b 0x1f 0x27 0x3d 0x7d 0x0e 
+    .byte 0x7f 0x3f 0x6f 0x75 0x78 0x57 0x79 0x69
 
-L GETKEY
-I   push B
+GETKEY:
+    push B
 
-L getkey0
+getkey0:
 # Set up I/O port
-I   clr A
-I   st A CTRLA
-I   st A CTRLB
-I   st A PORTA
-I   ld A #0xf
-I   st A PORTB
-I   ld A #0x4
-I   st A CTRLA
-I   st A CTRLB
-I   ld B #0xff
+    clr A
+    st A CTRLA
+    st A CTRLB
+    st A PORTA
+    ld A #0xf
+    st A PORTB
+    ld A #0x4
+    st A CTRLA
+    st A CTRLB
+    ld B #0xff
 
-L getkey2
-I   inc B
-I   cmp B #4
-I   bne getkey1
-I   bsr DISPRESH
-I   bra getkey0
+getkey2:
+    inc B
+    cmp B #4
+    bne getkey1
+    bsr DISPRESH
+    bra getkey0
 
-L getkey1
-I   st B PORTB
-I   ld A PORTA
-I   com A
-I   beq getkey2
+getkey1:
+    st B PORTB
+    ld A PORTA
+    com A
+    beq getkey2
 
 # Found a key: decode it
-I   st B tmp2
-I   st A tmp3
-I   clr A
-I   ld B #1
+    st B tmp2
+    st A tmp3
+    clr A
+    ld B #1
 
-L getkey4
-I   cmp B tmp3
-I   beq getkey3
-I   inc A
-I   asl B
-I   beq getkey2
-I   bra getkey4
+getkey4:
+    cmp B tmp3
+    beq getkey3
+    inc A
+    asl B
+    beq getkey2
+    bra getkey4
 
-L getkey3
-I   ld B tmp2
-I   asl B
-I   asl B
-I   asl B
-I   asl B
-I   add A B
+getkey3:
+    ld B tmp2
+    asl B
+    asl B
+    asl B
+    asl B
+    add A B
 
 # Wait for the key to be released
-I   push A
-I   ld A #8
-I   st A tmp3
-L getkey6 
-I   clr B
-L getkey5
-I   ld A PORTA
-I   com A
-I   bne getkey6
-I   dec B
-I   bne getkey5
-I   dec tmp3
-I   bne getkey5
-I   pop A
-I   pop B
-I   rts
+    push A
+    ld A #8
+    st A tmp3
+getkey6:
+    clr B
+getkey5:
+    ld A PORTA
+    com A
+    bne getkey6
+    dec B
+    bne getkey5
+    dec tmp3
+    bne getkey5
+    pop A
+    pop B
+    rts
 
 # 7c7b
-L DISPRESH
-I   push A
-I   push B
-I   st X tmpX
+DISPRESH:
+    push A
+    push B
+    st X tmpX
 
 # Set output ports for display
-I   ld X #PIA
-I   clr A
-I   st A 2(X)
-I   st A 3(X)
-I   ld A #0x7f
-I   st A 0(X)
-I   ld A #0x0f
-I   st A 1(X)
-I   ld A #0x4
-I   st A 2(X)
-I   st A 3(X)
+    ld X #PIA
+    clr A
+    st A 2(X)
+    st A 3(X)
+    ld A #0x7f
+    st A 0(X)
+    ld A #0x0f
+    st A 1(X)
+    ld A #0x4
+    st A 2(X)
+    st A 3(X)
 
 # Initialise loop over digits
 # They are numbered 4..9 to correspond to outputs from the 7442 decoder.
-I   ld X #dbuf-1
-I   ld B #3
+    ld X #dbuf-1
+    ld B #3
 
-L disp2
-I   inc B
-I   cmp B #10
-I   bne disp3
+disp2:
+    inc B
+    cmp B #10
+    bne disp3
 
 # Finished
-I   ld X tmpX
-I   pop B
-I   pop A
-I   rts
+    ld X tmpX
+    pop B
+    pop A
+    rts
 
 # Light up the next digit
-L disp3
-I   inc X
-I   st B PORTB
-I   ld A (X)
-I   com A
-I   st A PORTA
+disp3:
+    inc X
+    st B PORTB
+    ld A (X)
+    com A
+    st A PORTA
 
 # Delay loop
-I   ld A #0x80
-L disp1
-I   dec A
-I   bne disp1
+    ld A #0x80
+disp1:
+    dec A
+    bne disp1
 
 # Loop for next digit
-I   bra disp2
+    bra disp2
 
-L BADDR
+BADDR:
 # Input 2 byte address into X; result also at [addr]
-I   clr A
-I   st A dbuf
-I   st A dbuf+1
-I   st A dbuf+2
-I   st A dbuf+3
-I   ld X #dbuf
-I   bsr HEXIN
-I   st A addr
-I   bsr HEXIN
-I   st A addr+1
-I   ld X addr
-I   rts
+    clr A
+    st A dbuf
+    st A dbuf+1
+    st A dbuf+2
+    st A dbuf+3
+    ld X #dbuf
+    bsr HEXIN
+    st A addr
+    bsr HEXIN
+    st A addr+1
+    ld X addr
+    rts
 
 # 7ccc
-L HEXIN
+HEXIN:
 # Input 2 hex digits into A and update display at X
-I   bsr KEYHEX
-I   asl A
-I   asl A
-I   asl A
-I   asl A
-I   push A
-I   bsr L7SEG
-I   st A (X)
-I   inc X
-I   bsr KEYHEX
-I   pop B
-I   add A B
-I   push A
-I   bsr R7SEG
-I   st A (X)
-I   inc X
-I   pop A
-I   rts
+    bsr KEYHEX
+    asl A
+    asl A
+    asl A
+    asl A
+    push A
+    bsr L7SEG
+    st A (X)
+    inc X
+    bsr KEYHEX
+    pop B
+    add A B
+    push A
+    bsr R7SEG
+    st A (X)
+    inc X
+    pop A
+    rts
 
 # 7ce4
-L KEYHEX
-I   jsr GETKEY
+KEYHEX:
+    jsr GETKEY
 # Fall-thru
 
-L HEXCON
-I   push B
-I   st X tmpX
-I   ld X #keycode-1
-I   ld B #0xff
-L hexcon1
-I   inc B
-I   inc X
-I   cmp X #keycode+16
-I   beq toresume2
-I   cmp A (X)
-I   bne hexcon1
-I   mov A B
-I   ld X tmpX
-I   pop B
-I   rts
+HEXCON:
+    push B
+    st X tmpX
+    ld X #keycode-1
+    ld B #0xff
+hexcon1:
+    inc B
+    inc X
+    cmp X #keycode+16
+    beq toresume2
+    cmp A (X)
+    bne hexcon1
+    mov A B
+    ld X tmpX
+    pop B
+    rts
 
 # 7cff
-L L7SEG
-I   asr A
-I   asr A
-I   asr A
-I   asr A
+L7SEG:
+    asr A
+    asr A
+    asr A
+    asr A
 # Fall-thru
 
 # 7d03
-L R7SEG
+R7SEG:
 # Convert low-order 4 bits of A to 7seg
-I   st X tmpX
-I   ld X #svnseg
-I   and A #0xf
-L r71
-I   beq r72
-I   inc X
-I   dec A
-I   bra r71
-L r72
-I   ld A (X)
-I   ld X tmpX
-I   rts
+    st X tmpX
+    ld X #svnseg
+    and A #0xf
+r71:
+    beq r72
+    inc X
+    dec A
+    bra r71
+r72:
+    ld A (X)
+    ld X tmpX
+    rts
 
 # 7d15
-L SVNHEX
+SVNHEX:
 # Convert 7seg to hex
-I   push B
-I   st X tmpX
-I   ld X #svnseg
-I   mov B A
-I   clr A
+    push B
+    st X tmpX
+    ld X #svnseg
+    mov B A
+    clr A
 
-L svnhex1
-I   cmp B (X)
-I   beq svnhex2
-I   inc X
-I   cmp X #svnseg+16
-L toresume2
-I   beq resume
-I   inc A
-I   bra svnhex1
+svnhex1:
+    cmp B (X)
+    beq svnhex2
+    inc X
+    cmp X #svnseg+16
+toresume2:
+    beq resume
+    inc A
+    bra svnhex1
 
-L svnhex2
-I   ld X tmpX
-I   pop B
-I   rts
+svnhex2:
+    ld X tmpX
+    pop B
+    rts
 
 # 7d2e
-L memdisp
+memdisp:
 # Prompt for address with 'M' and display memory contents
-I   clr A
-I   st A dbuf+4
-I   ld A #0x6e
-I   st A dbuf+5
-I   jsr BADDR
+    clr A
+    st A dbuf+4
+    ld A #0x6e
+    st A dbuf+5
+    jsr BADDR
 
-L mem0
-I   ld A (X)
-I   push A
-I   bsr L7SEG
-I   st A dbuf+4
-I   pop A
-I   bsr R7SEG
-I   st A dbuf+5
+mem0:
+    ld A (X)
+    push A
+    bsr L7SEG
+    st A dbuf+4
+    pop A
+    bsr R7SEG
+    st A dbuf+5
 
-L mem1
+mem1:
 # Check for I key
-I   jsr GETKEY
-I   cmp A #keyI
-I   beq mem2
-I   bsr HEXCON
-I   ld B dbuf+5
-I   st B dbuf+4
-I   bsr R7SEG
-I   st A dbuf+5
-I   bra mem1
+    jsr GETKEY
+    cmp A #keyI
+    beq mem2
+    bsr HEXCON
+    ld B dbuf+5
+    st B dbuf+4
+    bsr R7SEG
+    st A dbuf+5
+    bra mem1
 
-L mem2
+mem2:
 # Store and increment
-I   ld A dbuf+4
-I   bsr SVNHEX
-I   asl A
-I   asl A
-I   asl A
-I   asl A
-I   push A
-I   ld A dbuf+5
-I   bsr SVNHEX
-I   pop B
-I   add A B
-I   mov B A
-I   st A (X)
-I   ld A (X)
-I   cmp A B
-I   bne resume
-I   inc X
-I   st X addr
-I   ld A addr
-I   bsr L7SEG
-I   st A dbuf
-I   ld A addr
-I   bsr R7SEG
-I   st A dbuf+1
-I   ld A addr+1
-I   jsr L7SEG
-I   st A dbuf+2
-I   ld A addr+1
-I   jsr R7SEG
-I   st A dbuf+3
-I   bra mem0
+    ld A dbuf+4
+    bsr SVNHEX
+    asl A
+    asl A
+    asl A
+    asl A
+    push A
+    ld A dbuf+5
+    bsr SVNHEX
+    pop B
+    add A B
+    mov B A
+    st A (X)
+    ld A (X)
+    cmp A B
+    bne resume
+    inc X
+    st X addr
+    ld A addr
+    bsr L7SEG
+    st A dbuf
+    ld A addr
+    bsr R7SEG
+    st A dbuf+1
+    ld A addr+1
+    jsr L7SEG
+    st A dbuf+2
+    ld A addr+1
+    jsr R7SEG
+    st A dbuf+3
+    bra mem0
 
-L reset
+reset:
 # Reset handler
-I   ld SP #0x60
+    ld SP #0x60
 
-L nmisr
-I   st SP usrsp
+nmisr:
+    st SP usrsp
 
 # Set up NMI to point here
-I   ld X #nmisr
-I   st X nmivec
+    ld X #nmisr
+    st X nmivec
 
 # 7d97
-L resume
-I   ld SP #0x60
+resume:
+    ld SP #0x60
 
 # Clear display
-I   clr A
-I   ld B #5
-I   ld X #dbuf+1
-L reset1
-I   st A (X)
-I   inc X
-I   dec B
-I   bne reset1
+    clr A
+    ld B #5
+    ld X #dbuf+1
+reset1:
+    st A (X)
+    inc X
+    dec B
+    bne reset1
 
 # Show '-' at left
-I   inc A
-I   st A dbuf
+    inc A
+    st A dbuf
 
-I   jsr GETKEY
+    jsr GETKEY
 
 # If key is 'M'
-I   cmp A #keyM
-I   bne reset2
-I   jmp memdisp
-L reset2
+    cmp A #keyM
+    bne reset2
+    jmp memdisp
+reset2:
 # If key is 'R'
-I   cmp A #keyR
-I   beq regdisp
+    cmp A #keyR
+    beq regdisp
 # If key is 'G'
-I   cmp A #keyG
-I   beq go
+    cmp A #keyG
+    beq go
 # If key is 'CN'
-I   cmp A #keyCN
-I   beq cont
+    cmp A #keyCN
+    beq cont
 # If key is 'L'
-I   cmp A #keyL
-I   bne reset3
-I   jmp load
+    cmp A #keyL
+    bne reset3
+    jmp load
 # If key is 'P'
-L reset3
-I   cmp A #keyP
-I   bne resume
-I   jmp save
+reset3:
+    cmp A #keyP
+    bne resume
+    jmp save
 
 # 7dcd
-L go
+go:
 # Prompt and accept start address
-I   ld A #0x7c
-I   st A dbuf+5
-I   jsr BADDR
-I   st X tmpX
-I   ld X usrsp
-I   ld A tmpX
-I   st A 6(X)
-I   ld A tmpX+1
-I   st A 7(X)
+    ld A #0x7c
+    st A dbuf+5
+    jsr BADDR
+    st X tmpX
+    ld X usrsp
+    ld A tmpX
+    st A 6(X)
+    ld A tmpX+1
+    st A 7(X)
 
 # 7de0
-L cont
-I   ld SP usrsp
-I   rti
+cont:
+    ld SP usrsp
+    rti
 
-L swintr
+swintr:
 # SWI handler: display registers
-I   st SP usrsp
-I   ld SP #0x60
+    st SP usrsp
+    ld SP #0x60
 
 # 7de8
-L regdisp
+regdisp:
 # Display registers one at a time
-I   ld X usrsp
+    ld X usrsp
 
 # Show CC
-I   ld A #0x78
-I   st A dbuf+4
-I   st A dbuf+5
-I   clr A
-I   st A dbuf
-I   st A dbuf+1
-I   bsr showbyte
-I   bsr regwait
+    ld A #0x78
+    st A dbuf+4
+    st A dbuf+5
+    clr A
+    st A dbuf
+    st A dbuf+1
+    bsr showbyte
+    bsr regwait
 
 # Show B
-I   clr dbuf+4
-I   ld A #0x75
-I   st A dbuf+5
-I   bsr showbyte
-I   bsr regwait
+    clr dbuf+4
+    ld A #0x75
+    st A dbuf+5
+    bsr showbyte
+    bsr regwait
 
 # Show A
-I   ld A #0x6f
-I   st A dbuf+5
-I   bsr showbyte
-I   bsr regwait
+    ld A #0x6f
+    st A dbuf+5
+    bsr showbyte
+    bsr regwait
 
 # Show X as IH
-I   ld A #0x6
-I   st A dbuf+4
-I   ld A #0x67
-I   st A dbuf+5
-I   bsr showword
-I   bsr regwait
+    ld A #0x6
+    st A dbuf+4
+    ld A #0x67
+    st A dbuf+5
+    bsr showword
+    bsr regwait
 
 # Show PC
-I   ld A #0x68
-I   st A dbuf+4
-I   ld A #0x78
-I   st A dbuf+5
-I   bsr showword
-I   bsr regwait
+    ld A #0x68
+    st A dbuf+4
+    ld A #0x78
+    st A dbuf+5
+    bsr showword
+    bsr regwait
 
 # Show SP
-I   ld A #0x3d
-I   st A dbuf+4
-I   ld A #0x6b
-I   st A dbuf+5
-I   ld X #usrsp
-I   dec X
-I   bsr showword
-I   bsr regwait
-I   bra toresume
+    ld A #0x3d
+    st A dbuf+4
+    ld A #0x6b
+    st A dbuf+5
+    ld X #usrsp
+    dec X
+    bsr showword
+    bsr regwait
+    bra toresume
 
 # 7e36
-L showleft
+showleft:
 # Fetch a byte at ++X and display it in the left two digits
-I   inc X
-I   ld A (X)
-I   jsr L7SEG
-I   st A dbuf
-I   ld A (X)
-I   jsr R7SEG
-I   st A dbuf+1
-I   rts
+    inc X
+    ld A (X)
+    jsr L7SEG
+    st A dbuf
+    ld A (X)
+    jsr R7SEG
+    st A dbuf+1
+    rts
 
 # 7e46
-L showword
+showword:
 # Show a two-byte word
-I   bsr showleft
+    bsr showleft
 # Fall-thru
 
 # 7e48
-L showbyte
+showbyte:
 # Fetch a byte at ++X and display it
-I   inc X
-I   ld A (X)
-I   jsr L7SEG
-I   st A dbuf+2
-I   ld A (X)
-I   jsr R7SEG
-I   st A dbuf+3
-I   rts
+    inc X
+    ld A (X)
+    jsr L7SEG
+    st A dbuf+2
+    ld A (X)
+    jsr R7SEG
+    st A dbuf+3
+    rts
 
 # 7e58
-L regwait
+regwait:
 # Wait for I key or resume monitor
-I   jsr GETKEY
-I   cmp A #keyI
-I   beq gotI
-L toresume
-I   jmp resume
-L gotI
-I   rts
+    jsr GETKEY
+    cmp A #keyI
+    beq gotI
+toresume:
+    jmp resume
+gotI:
+    rts
 
 # ----------------------------------------------------------------
 
-L recvbit
+recvbit:
 # Receive a bit and return in CC
-I   push A
-I   push B
+    push A
+    push B
 
-L retry
-I   ld B #6
+retry:
+    ld B #6
 
 # Listen for a high signal on PORTB[7]
-L recv1
-I   ld A PORTB
-I   asl A
-I   bcc recv1
+recv1:
+    ld A PORTB
+    asl A
+    bcc recv1
 
 # Wait a moment
-L recv2
-I   dec B
-I   bne recv2
+recv2:
+    dec B
+    bne recv2
 
 # Check the signal is still high
-I   ld A PORTB
-I   asl A
-I   bcc retry
+    ld A PORTB
+    asl A
+    bcc retry
 
 # Time until the signal is low
-I   ld B #40
-L recv3
-I   dec B
-I   ld A PORTB
-I   asl A
-I   bcs recv3
+    ld B #40
+recv3:
+    dec B
+    ld A PORTB
+    asl A
+    bcs recv3
 
 # Show a bit pattern in the display
-I   ld A #0xef
-I   tst B
-I   bmi recv4
-I   asr A
-L recv4
-I   st A PORTA
+    ld A #0xef
+    tst B
+    bmi recv4
+    asr A
+recv4:
+    st A PORTA
 
 # Set CC with the result: positive for a 1
-I   tst B
-I   pop B
-I   pop A
-I   rts
+    tst B
+    pop B
+    pop A
+    rts
 
 # 7e8c
-L recvbyte
+recvbyte:
 # Receive a byte and return in B
-I   push A
+    push A
 
 # Wait for start bit
-L rbyte1
-I   bsr recvbit
+rbyte1:
+    bsr recvbit
 # 7e8f
-I   bpl rbyte1
+    bpl rbyte1
 
 # Prepare to gather 8 bits
-I   ld A #8
+    ld A #8
 
 # Loop once per bit, LSB first
-L rbyte3
-I   bsr recvbit
-I   clc
-I   bmi rbyte2
-I   sec
-L rbyte2
-I   ror B
-I   dec A
-I   bne rbyte3
+rbyte3:
+    bsr recvbit
+    clc
+    bmi rbyte2
+    sec
+rbyte2:
+    ror B
+    dec A
+    bne rbyte3
 
-I   pop A
-I   rts
+    pop A
+    rts
 
-L load
+load:
 # Set up I/O ports
-I   ld X #0
-I   st X CTRLA
-I   ld X #0xff7f
-I   st X PORTA
-I   ld X #0x0404
-I   st X CTRLA
-I   ld X #0xff04
-I   st X PORTA
+    ld X #0
+    st X CTRLA
+    ld X #0xff7f
+    st X PORTA
+    ld X #0x0404
+    st X CTRLA
+    ld X #0xff04
+    st X PORTA
 
-L reload
-I   bsr recvbyte
+reload:
+    bsr recvbyte
 # Wait for 0x53 = 'S'
-I   cmp B #0x53
-I   bne reload
-I   bsr recvbyte
+    cmp B #0x53
+    bne reload
+    bsr recvbyte
 # Code 'S1' begins a record
-I   cmp B #0x31
-I   beq load2
+    cmp B #0x31
+    beq load2
 # Code 'SJ' means EOF
-I   cmp B #0x4a
-I   bne reload
+    cmp B #0x4a
+    bne reload
 
-L messageF
+messageF:
 # Show F in display forever
-I   ld A #0x69
-I   bra errstop
+    ld A #0x69
+    bra errstop
 
-L load2
+load2:
 # Get count, initialise checksum
-I   bsr recvbyte
-I   st B tmp2
-I   mov A B
+    bsr recvbyte
+    st B tmp2
+    mov A B
 
 # Get two-byte address, accumulating checksum in A
-I   bsr recvbyte
-I   st B tmpX
-I   add A B
-I   dec tmp2
-I   bsr recvbyte
-I   st B tmpX+1
-I   add A B
-I   ld X tmpX
+    bsr recvbyte
+    st B tmpX
+    add A B
+    dec tmp2
+    bsr recvbyte
+    st B tmpX+1
+    add A B
+    ld X tmpX
 
-L ldloop
-I   dec tmp2
-I   beq lddone
-I   bsr recvbyte
-I   st B (X)
-I   add A B
-I   inc X
-I   bra ldloop
+ldloop:
+    dec tmp2
+    beq lddone
+    bsr recvbyte
+    st B (X)
+    add A B
+    inc X
+    bra ldloop
 
-L lddone
+lddone:
 # Verify checksum
-I   bsr recvbyte
-I   add A B
-I   beq reload
-I   ld A #0x78
+    bsr recvbyte
+    add A B
+    beq reload
+    ld A #0x78
 # Fall-thru
 
-L errstop
+errstop:
 # Show code from A and loop forever
-I   ld X #0
-I   st X dbuf
-I   st X dbuf+2
-I   st X dbuf+4
-I   st A dbuf
-L dead
-I   jsr DISPRESH
-I   bra dead
+    ld X #0
+    st X dbuf
+    st X dbuf+2
+    st X dbuf+4
+    st A dbuf
+dead:
+    jsr DISPRESH
+    bra dead
 
-I   nop
-I   nop
-I   nop
-I   nop
+    nop
+    nop
+    nop
+    nop
 
 # ----------------------------------------------------------------
 
-L save
+save:
 # Prompt 'S' and get start address
-I   ld X #0x3d
-I   st X dbuf+4
-I   jsr BADDR
-I   st X ptr
+    ld X #0x3d
+    st X dbuf+4
+    jsr BADDR
+    st X ptr
 
 # Prompt 'F' and get finish address
-I   ld A #0x69
-I   st A dbuf+5
-I   jsr BADDR
+    ld A #0x69
+    st A dbuf+5
+    jsr BADDR
 
 # Set up output port
-I   clr A
-I   st A CTRLB
-I   dec A
-I   st A PORTB
-I   ld A #0x04
-I   st A CTRLB
-I   clr A
-I   st A PORTB
-I   bra save1
+    clr A
+    st A CTRLB
+    dec A
+    st A PORTB
+    ld A #0x04
+    st A CTRLB
+    clr A
+    st A PORTB
+    bra save1
 
-I   nop
-I   nop
-I   nop
-I   nop
+    nop
+    nop
+    nop
+    nop
 
 # 7f2f
-L savedone
-I   bra messageF
+savedone:
+    bra messageF
 
 # 7f31
-L save1
+save1:
 # Send two bytes of all ones
-I   ld A #0xff
-I   bsr send
-I   bsr send
+    ld A #0xff
+    bsr send
+    bsr send
 
 # 7f37
-L save4
+save4:
 # Send block start
-I   bsr sendstart
+    bsr sendstart
 
 # calculate block length
-I   ld A #0xff
-I   ld B ptr+1
-I   sub A B
+    ld A #0xff
+    ld B ptr+1
+    sub A B
 
 # 7f3e
-L save2
+save2:
 # Send length code and init checksum
-I   and A #0xf
-I   add A #3
-I   bsr send
+    and A #0xf
+    add A #3
+    bsr send
 # 7f44
-I   st A chksum
+    st A chksum
 
 # Send (half of) address and add to checksum
-I   ld X #ptr
-I   bsr sendbyte
+    ld X #ptr
+    bsr sendbyte
 # 7f4b
-I   add A chksum
-I   st A chksum
+    add A chksum
+    st A chksum
 
 # Send other half of address and add to checksum
-I   inc X
-I   bsr sendbyte
+    inc X
+    bsr sendbyte
 # 7f52
-I   add A chksum
-I   st A chksum
-I   ld X ptr
+    add A chksum
+    st A chksum
+    ld X ptr
 
 # Send a data byte and add to checksum
-L save3
-I   bsr sendbyte
+save3:
+    bsr sendbyte
 # 7f5a
-I   add A chksum
-I   st A chksum
+    add A chksum
+    st A chksum
 
 # Test if finished
-I   cmp X addr
+    cmp X addr
 #7f60
-I   beq endblock
+    beq endblock
 
 # Increment and test if end of block
-I   inc X
-I   st X ptr
-I   ld A ptr+1
-I   bit A #0xf
-I   bne save3
+    inc X
+    st X ptr
+    ld A ptr+1
+    bit A #0xf
+    bne save3
 # 7f6b
 
-L endblock
+endblock:
 # Send checksum
-I   ld A chksum
-I   neg A
-I   bsr send
+    ld A chksum
+    neg A
+    bsr send
 
 # Test if all finished
-I   cmp X addr
-I   beq sendeof
+    cmp X addr
+    beq sendeof
 
 # 7f74 
 # Test if another full block to send
-I   ld A ptr
-I   cmp A addr
-I   bmi save4
+    ld A ptr
+    cmp A addr
+    bmi save4
 # 7f7a
-I   ld B ptr+1
-I   ld A addr+1
-I   and A #0xf0
+    ld B ptr+1
+    ld A addr+1
+    and A #0xf0
 # 7f80
-I   cmp A B
-I   bne save4
+    cmp A B
+    bne save4
 # 7f83
 # Last block may be short
-I   bsr sendstart
+    bsr sendstart
 # 7f85
-I   ld A addr+1
-I   bra save2
+    ld A addr+1
+    bra save2
 
 # 7f89
-L sendeof
+sendeof:
 # Send eof code 534a = 'SJ'
-I   ld A #0x53
-I   bsr send
-I   ld A #0x4a
-I   bsr send
-I   bra savedone
+    ld A #0x53
+    bsr send
+    ld A #0x4a
+    bsr send
+    bra savedone
 
 # 7f93
-L sendstart
+sendstart:
 # Send magic code 'S1'
-I   ld A #0x53
-I   bsr send
-I   ld A #0x31
-I   bra send
+    ld A #0x53
+    bsr send
+    ld A #0x31
+    bra send
 
 # 7f9b
-L sendbyte
+sendbyte:
 # Transmit byte from (X)
-I   ld A (X)
+    ld A (X)
 
 # 7f9d
-L send
+send:
 # Transmit byte from A
-I   push A
-I   push B
+    push A
+    push B
 
 # Total of 10 bits to send, including start and stop
-I   ld B #10
-I   st B count
+    ld B #10
+    st B count
 
 # Set up start bit
-I   clc
+    clc
 
-L nextbit
+nextbit:
 # Next bit in C flag: set B to delay count
-I   ld B #0x78
-I   bcc save8
-I   ld B #0x1e
-L save8
-I   push B
+    ld B #0x78
+    bcc save8
+    ld B #0x1e
+save8:
+    push B
 
 # Set bit in output port
-I   ld B #0x40
-I   st B PORTB
+    ld B #0x40
+    st B PORTB
 
 # Delay loop
-I   pop B
-I   dec SP
-L delay1
-I   dec B
-I   bne delay1
+    pop B
+    dec SP
+delay1:
+    dec B
+    bne delay1
 
 # Clear bit in output port
-I   st B PORTB
+    st B PORTB
 
 # Same delay loop again
-I   pop B
-L delay2
-I   dec B
-I   bne delay2
+    pop B
+delay2:
+    dec B
+    bne delay2
 
 # Rotate a 1 bit into A, so stop bit will be a 1
-I   sec
-I   ror A
-I   dec count
-I   bne nextbit
+    sec
+    ror A
+    dec count
+    bne nextbit
 
-I   pop B
-I   pop A
-I   rts
+    pop B
+    pop A
+    rts
 
-E . 0x7fe8
-L intrq
+    .equ . 0x7fe8
+intrq:
 # IRQ handler
-I   ld X irqvec
-I   jmp (X)
+    ld X irqvec
+    jmp (X)
 
-E . 0x7fec
-L nmintr
+    .equ . 0x7fec
+nmintr:
 # NMI handler
-I   ld X nmivec
-I   jmp (X)
+    ld X nmivec
+    jmp (X)
 
-E . 0x7ff8
+    .equ . 0x7ff8
 # Interrupt vectors
-W intrq
-W swintr
-W nmintr
-W reset
+    .word intrq
+    .word swintr
+    .word nmintr
+    .word reset
 
 fixup
 output

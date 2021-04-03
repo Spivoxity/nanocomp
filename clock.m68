@@ -4,17 +4,17 @@ source assem.tcl
 set freq 151.690; # in Hz
 
 # ROM routines
-E SVNSEG 0x7c10;	# Seven-seg table
-E DISPRESH 0x7c7b;	# Display update
-E KEYHEX 0x7ce4;	# Get key as hex digit
-E R7SEG 0x7d03;		# Convert hex digit to seven-seg
-E GETKEY 0x7c20;	# Get key as scan code
+    .equ SVNSEG 0x7c10;		# Seven-seg table
+    .equ DISPRESH 0x7c7b;	# Display update
+    .equ KEYHEX 0x7ce4;		# Get key as hex digit
+    .equ R7SEG 0x7d03;		# Convert hex digit to seven-seg
+    .equ GETKEY 0x7c20;		# Get key as scan code
 
 # PIA addresses
-E PORTA 0x4000
-E PORTB 0x4001
-E CTRLA 0x4002
-E CTRLB 0x4003
+    .equ PORTA 0x4000
+    .equ PORTB 0x4001
+    .equ CTRLA 0x4002
+    .equ CTRLB 0x4003
 
 # The clock uses two counters: a high-speed one that counts in units
 # of 2^{-32} seconds and overflows once per second, and a slow-speed
@@ -26,72 +26,72 @@ E CTRLB 0x4003
 # slow-speed counter keeps the time in the format HHMMSS, with the
 # digits represented in BCD.
 
-E dbuf 0x7a
-E time 0x62
-E jiffy 0x66
-E tmpX 0x6a
+    .equ dbuf 0x7a
+    .equ time 0x62
+    .equ jiffy 0x66
+    .equ tmpX 0x6a
 
-E . 0x1000
+    .equ . 0x1000
 
-L start
-I   ld SP #0x40
+start:
+    ld SP #0x40
 
 # Prompt for a time
-I   clr A
-I   st A dbuf;		# Clear display buffer
-I   st A dbuf+1
-I   st A dbuf+2
-I   st A dbuf+3
-I   st A dbuf+4
-I   ld A #0x19; 	# Three horizontal lines
-I   st A dbuf+5
+    clr A
+    st A dbuf;			# Clear display buffer
+    st A dbuf+1
+    st A dbuf+2
+    st A dbuf+3
+    st A dbuf+4
+    ld A #0x19; 		# Three horizontal lines
+    st A dbuf+5
 
-I   ld X #dbuf
-I   ld B #2
-I   jsr digit; 		# Tens of hours -- up to 2
-I   asl A
-I   asl A
-I   asl A
-I   asl A
-I   st A time
-I   ld B #9
-I   cmp A #0x20
-I   blt small
-I   ld B #3
-L small
-I   jsr digit; 		# Units of hours -- up to 9 or 3
-I   add A time
-I   st A time
+    ld X #dbuf
+    ld B #2
+    jsr digit; 			# Tens of hours -- up to 2
+    asl A
+    asl A
+    asl A
+    asl A
+    st A time
+    ld B #9
+    cmp A #0x20
+    blt small
+    ld B #3
+small:
+    jsr digit; 			# Units of hours -- up to 9 or 3
+    add A time
+    st A time
 
-I   ld B #5
-I   jsr digit; 		# Tens of minutes -- up to 5
-I   asl A
-I   asl A
-I   asl A
-I   asl A
-I   st A time+1
-I   ld B #9
-I   jsr digit; 		# Units of minutes -- up to 9
-I   add A time+1
-I   st A time+1
+    ld B #5
+    jsr digit; 			# Tens of minutes -- up to 5
+    asl A
+    asl A
+    asl A
+    asl A
+    st A time+1
+    ld B #9
+    jsr digit; 			# Units of minutes -- up to 9
+    add A time+1
+    st A time+1
 
-E IKEY 0x32
+    .equ IKEY 0x32
 
-L waiti
+waiti:
 # Wait for the I key to be pressed
-I   jsr GETKEY
-I   cmp A #IKEY
-I   bne waiti
+    jsr GETKEY
+    cmp A #IKEY
+    bne waiti
 
 # Clear out seconds and the fast counter
-I   clr A
-I   st A jiffy
-I   st A jiffy+1
-I   st A jiffy+2
-I   st A jiffy+3
-I   st A time+2
+    clr A
+    st A jiffy
+    st A jiffy+1
+    st A jiffy+2
+    st A jiffy+3
+    st A time+2
 
-L loop
+loop:
 # The timing loop for the clock.  We rely on the loop taking the same
 # number of cycles every time, so we need to be very careful with
 # conditional branches.
@@ -106,109 +106,109 @@ set inc [expr {($inc - $inc1) * 256.0}]; set inc0 [expr {int($inc+0.5)}]
 # puts stderr [expr {((($inc0/256.0+$inc1)/256.0+$inc2)/256.0+$inc3)/256.0}]
 
 # Increment the high-speed counter byte by byte
-I   ld A jiffy+3
-I   add A #$inc0
-I   st A jiffy+3
-I   ld A jiffy+2
-I   adc A #$inc1
-I   st A jiffy+2
-I   ld A jiffy+1
-I   adc A #$inc2
-I   st A jiffy+1
-I   ld A jiffy
-I   adc A #$inc3
-I   st A jiffy
+    ld A jiffy+3
+    add A #$inc0
+    st A jiffy+3
+    ld A jiffy+2
+    adc A #$inc1
+    st A jiffy+2
+    ld A jiffy+1
+    adc A #$inc2
+    st A jiffy+1
+    ld A jiffy
+    adc A #$inc3
+    st A jiffy
 
 # Increment the slow-speed counter according to the C flag
-I   ld X #time+2
-I   ld B #0x60
-I   bsr inc
-I   dec X
-I   ld B #0x60
-I   bsr inc
-I   dec X
-I   ld B #0x24
-I   bsr inc
+    ld X #time+2
+    ld B #0x60
+    bsr inc
+    dec X
+    ld B #0x60
+    bsr inc
+    dec X
+    ld B #0x24
+    bsr inc
 
 # Convert the time to 7 segment codes
-I   ld A time
-I   bsr convL
-I   st A dbuf
-I   ld A time
-I   bsr convR
-I   st A dbuf+1
-I   ld A time+1
-I   bsr convL
-I   st A dbuf+2
-I   ld A time+1
-I   bsr convR
-I   st A dbuf+3
-I   ld A time+2
-I   bsr convL
-I   st A dbuf+4
-I   ld A time+2
-I   bsr convR
-I   st A dbuf+5
-I   jsr DISPRESH; # Refresh the display
+    ld A time
+    bsr convL
+    st A dbuf
+    ld A time
+    bsr convR
+    st A dbuf+1
+    ld A time+1
+    bsr convL
+    st A dbuf+2
+    ld A time+1
+    bsr convR
+    st A dbuf+3
+    ld A time+2
+    bsr convL
+    st A dbuf+4
+    ld A time+2
+    bsr convR
+    st A dbuf+5
+    jsr DISPRESH; # Refresh the display
 
 # Output a sync pulse for calibration
-I   clr A
-I   st A CTRLA;		# Address DDRA
-I   ld B #0x80
-I   st B PORTA;		# High-order bit as output
-I   ld B #0x4
-I   st B CTRLA;		# Address PORTA
-I   st A PORTA;		# Force the bit low
+    clr A
+    st A CTRLA;			# Address DDRA
+    ld B #0x80
+    st B PORTA;			# High-order bit as output
+    ld B #0x4
+    st B CTRLA;			# Address PORTA
+    st A PORTA;			# Force the bit low
 
-I   bra loop
+    bra loop
 
-L inc
+inc:
 # Add the C flag to the BCD byte at (X), with overflow at B
-I   ld A (X); 		# Fetch the byte from (X)
-I   adc A #0;		# Perform the increment
-I   daa;                # Adjust for BCD
-I   cmp A B;		# Now see if we have reached the value in B
-I   rol B;		# Put C flag in bottom of B
-I   and B #1;		# Isolate the flag -- 1 if OK or 0 if reached
-I   neg B;		# Extend to all of B -- 0xff or 0
-I   and A B;		# Reset A if necessary -- undocumented instruction!
-I   st A (X);		# Save the result
-I   sub B #1;		# Set C if B=0
-I   rts
+    ld A (X); 			# Fetch the byte from (X)
+    adc A #0;			# Perform the increment
+    daa;                	# Adjust for BCD
+    cmp A B;			# Now see if we have reached the value in B
+    rol B;			# Put C flag in bottom of B
+    and B #1;			# Isolate the flag -- 1 if OK or 0 if reached
+    neg B;			# Extend to all of B -- 0xff or 0
+    and A B;			# Reset A -- undocumented instruction!
+    st A (X);			# Save the result
+    sub B #1;			# Set C if B=0
+    rts
 
 # The ROM routines L7SEG and R7SEG are unusable because of variable timing
 
-L convL
+convL:
 # Convert high-order digit of A to seven seg code
-I   asr A
-I   asr A
-I   asr A
-I   asr A
+    asr A
+    asr A
+    asr A
+    asr A
 # Fall through
 
-L convR
+convR:
 # Convert low-order digit of A to seven seg code
-I   and A #0xf
-I   add A #lo(SVNSEG)
-I   st A tmpX+1
-I   ld A #hi(SVNSEG)
-I   st A tmpX
-I   ld X tmpX
-I   ld A (X)
-I   rts
+    and A #0xf
+    add A #lo(SVNSEG)
+    st A tmpX+1
+    ld A #hi(SVNSEG)
+    st A tmpX
+    ld X tmpX
+    ld A (X)
+    rts
 
-L digit
+digit:
 # Get a digit as a keypress; limit in B; update display at (X)
-I   push B
-I   jsr KEYHEX
-I   pop B
-I   cmp A B
-I   bgt digit
-I   push A
-I   jsr R7SEG
-I   st A (X)
-I   inc X
-I   pop A
-I   rts
+    push B
+    jsr KEYHEX
+    pop B
+    cmp A B
+    bgt digit
+    push A
+    jsr R7SEG
+    st A (X)
+    inc X
+    pop A
+    rts
 
 fixup; output-c

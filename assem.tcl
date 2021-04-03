@@ -98,7 +98,7 @@ proc eat-const {exp} {
 # Known or unknown values are represented as lists [K val] or [V sym off]
 
 # Add a value and a constant
-proc add {f v} {
+proc addoff {f v} {
     switch [lindex $f 0] {
         K {return [list K [expr {[lindex $f 1]+$v}]]}
         V {return [list V [lindex $f 1] \
@@ -138,7 +138,7 @@ proc eat-expr {exp} {
             set v1 [eat-expr $e1]
             set v2 [eat-const $e2]
             if {$op == "-"} {set v2 [expr {- $v2}]}
-            return [add $v1 $v2] }
+            return [addoff $v1 $v2] }
     }
 
     return $exp
@@ -318,9 +318,28 @@ proc hexadd {a b} {
 
 # Instructions
 
+proc assemble {op rands} {
+    global instr
+
+    if {[catch {set handlers $instr($op)}]} {
+        error "Unknown instruction $op"
+    }
+
+    foreach h $handlers {
+        try {eval [concat $h [list $rands]]; return}
+    }
+            
+    error "Can't assemble $op $rands"
+}
+    
+
 proc make-inst {mnem args} {
     global instr
     lappend instr($mnem) $args
+
+    if {[llength [info procs $mnem]] == 0} {
+        proc $mnem {args} [concat [list assemble $mnem] {$args}]
+    }
 }
 
 proc fixed {mnem rands op} {
@@ -436,38 +455,34 @@ fixed wai {} 3e
 
 # Interface routines
 
-proc I {op args} {
-    global instr
-
-    if {[catch {set handlers $instr($op)}]} {
-        error "Unknown instruction $op"
-    }
-
-    foreach h $handlers {
-        try {eval [concat $h [list $args]]; return}
-    }
-            
-    error "Can't assemble $op $args"
-}
-
-proc E {name expr} {
+proc .equ {name expr} {
     setval $name [evaluate $expr]
 }
 
-proc B {args} {
+proc .byte {args} {
     foreach e $args {
         set v [expr-value $e]
         use 1 $v
     }
 }
 
-proc W {args} {
+proc .word {args} {
     foreach e $args {
         set v [expr-value $e]
         use 2 $v
     }
 }
 
-proc L {label} {
+proc label {label} {
     setval $label [getval "."]
+}
+
+proc unknown {cmd args} {
+    if {[regexp {(.*):$} $cmd _ label]} {
+        label $label
+        return
+    }
+
+    puts stderr "unknown: $cmd $args"
+    exit 1
 }

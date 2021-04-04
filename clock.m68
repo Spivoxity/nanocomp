@@ -77,11 +77,11 @@ small:
 
     .equ IKEY 0x32
 
-waiti:
 # Wait for the I key to be pressed
+1:
     jsr GETKEY
     cmp A #IKEY
-    bne waiti
+    bne 1b
 
 # Clear out seconds and the fast counter
     clr A

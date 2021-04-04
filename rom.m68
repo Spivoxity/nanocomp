@@ -40,8 +40,8 @@ svnseg:
 GETKEY:
     push B
 
-getkey0:
 # Set up I/O port
+0:
     clr A
     st A CTRLA
     st A CTRLB
@@ -53,18 +53,18 @@ getkey0:
     st A CTRLB
     ld B #0xff
 
-getkey2:
+2:
     inc B
     cmp B #4
-    bne getkey1
+    bne 1f
     bsr DISPRESH
-    bra getkey0
+    bra 0b
 
-getkey1:
+1:
     st B PORTB
     ld A PORTA
     com A
-    beq getkey2
+    beq 2b
 
 # Found a key: decode it
     st B tmp2
@@ -72,15 +72,15 @@ getkey1:
     clr A
     ld B #1
 
-getkey4:
+4:
     cmp B tmp3
-    beq getkey3
+    beq 3f
     inc A
     asl B
-    beq getkey2
-    bra getkey4
+    beq 2b
+    bra 4b
 
-getkey3:
+3:
     ld B tmp2
     asl B
     asl B
@@ -92,16 +92,16 @@ getkey3:
     push A
     ld A #8
     st A tmp3
-getkey6:
+6:
     clr B
-getkey5:
+5:
     ld A PORTA
     com A
-    bne getkey6
+    bne 6b
     dec B
-    bne getkey5
+    bne 5b
     dec tmp3
-    bne getkey5
+    bne 5b
     pop A
     pop B
     rts
@@ -130,10 +130,10 @@ DISPRESH:
     ld X #dbuf-1
     ld B #3
 
-disp2:
+2:
     inc B
     cmp B #10
-    bne disp3
+    bne 3f
 
 # Finished
     ld X tmpX
@@ -142,7 +142,7 @@ disp2:
     rts
 
 # Light up the next digit
-disp3:
+3:
     inc X
     st B PORTB
     ld A (X)
@@ -151,12 +151,12 @@ disp3:
 
 # Delay loop
     ld A #0x80
-disp1:
+1:
     dec A
-    bne disp1
+    bne 1b
 
 # Loop for next digit
-    bra disp2
+    bra 2b
 
 BADDR:
 # Input 2 byte address into X; result also at [addr]
@@ -205,13 +205,13 @@ HEXCON:
     st X tmpX
     ld X #keycode-1
     ld B #0xff
-hexcon1:
+1:
     inc B
     inc X
     cmp X #keycode+16
     beq toresume2
     cmp A (X)
-    bne hexcon1
+    bne 1b
     mov A B
     ld X tmpX
     pop B
@@ -231,12 +231,12 @@ R7SEG:
     st X tmpX
     ld X #svnseg
     and A #0xf
-r71:
-    beq r72
+1:
+    beq 2f
     inc X
     dec A
-    bra r71
-r72:
+    bra 1b
+2:
     ld A (X)
     ld X tmpX
     rts
@@ -250,17 +250,17 @@ SVNHEX:
     mov B A
     clr A
 
-svnhex1:
+1:
     cmp B (X)
-    beq svnhex2
+    beq 2f
     inc X
     cmp X #svnseg+16
 toresume2:
     beq resume
     inc A
-    bra svnhex1
+    bra 1b
 
-svnhex2:
+2:
     ld X tmpX
     pop B
     rts
@@ -274,7 +274,7 @@ memdisp:
     st A dbuf+5
     jsr BADDR
 
-mem0:
+0:
     ld A (X)
     push A
     bsr L7SEG
@@ -283,19 +283,19 @@ mem0:
     bsr R7SEG
     st A dbuf+5
 
-mem1:
+1:
 # Check for I key
     jsr GETKEY
     cmp A #keyI
-    beq mem2
+    beq 2f
     bsr HEXCON
     ld B dbuf+5
     st B dbuf+4
     bsr R7SEG
     st A dbuf+5
-    bra mem1
+    bra 1b
 
-mem2:
+2:
 # Store and increment
     ld A dbuf+4
     bsr SVNHEX
@@ -327,7 +327,7 @@ mem2:
     ld A addr+1
     jsr R7SEG
     st A dbuf+3
-    bra mem0
+    bra 0b
 
 reset:
 # Reset handler
@@ -348,11 +348,11 @@ resume:
     clr A
     ld B #5
     ld X #dbuf+1
-reset1:
+1:
     st A (X)
     inc X
     dec B
-    bne reset1
+    bne 1b
 
 # Show '-' at left
     inc A
@@ -362,9 +362,9 @@ reset1:
 
 # If key is 'M'
     cmp A #keyM
-    bne reset2
+    bne 2f
     jmp memdisp
-reset2:
+2:
 # If key is 'R'
     cmp A #keyR
     beq regdisp
@@ -376,10 +376,10 @@ reset2:
     beq cont
 # If key is 'L'
     cmp A #keyL
-    bne reset3
+    bne 3f
     jmp load
 # If key is 'P'
-reset3:
+3:
     cmp A #keyP
     bne resume
     jmp save
@@ -514,15 +514,15 @@ retry:
     ld B #6
 
 # Listen for a high signal on PORTB[7]
-recv1:
+1:
     ld A PORTB
     asl A
-    bcc recv1
+    bcc 1b
 
 # Wait a moment
-recv2:
+2:
     dec B
-    bne recv2
+    bne 2b
 
 # Check the signal is still high
     ld A PORTB
@@ -531,18 +531,18 @@ recv2:
 
 # Time until the signal is low
     ld B #40
-recv3:
+3:
     dec B
     ld A PORTB
     asl A
-    bcs recv3
+    bcs 3b
 
 # Show a bit pattern in the display
     ld A #0xef
     tst B
-    bmi recv4
+    bmi 4f
     asr A
-recv4:
+4:
     st A PORTA
 
 # Set CC with the result: positive for a 1
@@ -557,24 +557,24 @@ recvbyte:
     push A
 
 # Wait for start bit
-rbyte1:
+1:
     bsr recvbit
 # 7e8f
-    bpl rbyte1
+    bpl 1b
 
 # Prepare to gather 8 bits
     ld A #8
 
 # Loop once per bit, LSB first
-rbyte3:
+3:
     bsr recvbit
     clc
-    bmi rbyte2
+    bmi 2f
     sec
-rbyte2:
+2:
     ror B
     dec A
-    bne rbyte3
+    bne 3b
 
     pop A
     rts
@@ -598,7 +598,7 @@ reload:
     bsr recvbyte
 # Code 'S1' begins a record
     cmp B #0x31
-    beq load2
+    beq 2f
 # Code 'SJ' means EOF
     cmp B #0x4a
     bne reload
@@ -608,7 +608,7 @@ messageF:
     ld A #0x69
     bra errstop
 
-load2:
+2:
 # Get count, initialise checksum
     bsr recvbyte
     st B tmp2
@@ -680,7 +680,7 @@ save:
     st A CTRLB
     clr A
     st A PORTB
-    bra save1
+    bra 1f
 
     nop
     nop
@@ -692,14 +692,14 @@ savedone:
     bra messageF
 
 # 7f31
-save1:
+1:
 # Send two bytes of all ones
     ld A #0xff
     bsr send
     bsr send
 
 # 7f37
-save4:
+4:
 # Send block start
     bsr sendstart
 
@@ -709,7 +709,7 @@ save4:
     sub A B
 
 # 7f3e
-save2:
+2:
 # Send length code and init checksum
     and A #0xf
     add A #3
@@ -733,7 +733,7 @@ save2:
     ld X ptr
 
 # Send a data byte and add to checksum
-save3:
+3:
     bsr sendbyte
 # 7f5a
     add A chksum
@@ -749,7 +749,7 @@ save3:
     st X ptr
     ld A ptr+1
     bit A #0xf
-    bne save3
+    bne 3b
 # 7f6b
 
 endblock:
@@ -766,20 +766,20 @@ endblock:
 # Test if another full block to send
     ld A ptr
     cmp A addr
-    bmi save4
+    bmi 4b
 # 7f7a
     ld B ptr+1
     ld A addr+1
     and A #0xf0
 # 7f80
     cmp A B
-    bne save4
+    bne 4b
 # 7f83
 # Last block may be short
     bsr sendstart
 # 7f85
     ld A addr+1
-    bra save2
+    bra 2b
 
 # 7f89
 sendeof:
@@ -819,9 +819,9 @@ send:
 nextbit:
 # Next bit in C flag: set B to delay count
     ld B #0x78
-    bcc save8
+    bcc 8f
     ld B #0x1e
-save8:
+8:
     push B
 
 # Set bit in output port
@@ -831,18 +831,18 @@ save8:
 # Delay loop
     pop B
     dec SP
-delay1:
+1:
     dec B
-    bne delay1
+    bne 1b
 
 # Clear bit in output port
     st B PORTB
 
 # Same delay loop again
     pop B
-delay2:
+2:
     dec B
-    bne delay2
+    bne 2b
 
 # Rotate a 1 bit into A, so stop bit will be a 1
     sec

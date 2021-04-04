@@ -1,21 +1,11 @@
 # M6800 assembler
 
-# The source is written as a TCL script containing a sequence of calls
-# to interface routines:
-#
-# I op args     -- an instruction
-# E name expr   -- define symbol 'name' as the value of 'expr'
-# B val val ... -- assemble a sequence of literal bytes
-# W val val ... -- assemble a sequence of two-byte words
-# L name        -- define a label
-#
-# Use 'E . addr' to set the assembly location
-#
+# The source is written as a TCL script containing a sequence of calls.
 # Instruction formats are a bit unconventional, in that we write
 #
-# I add A #3
-# I add A 4(X)
-# I add A B
+# add A #3
+# add A 4(X)
+# add A B
 #
 # for various kinds of ADD instruction
 #
@@ -122,8 +112,14 @@ proc high {f} {
     }
 }
 
+for {set i 0} {$i < 10} {incr i} {
+    set here($i) 0
+}
+
 # Analyse expression and make a value, or fail
 proc eat-expr {exp} {
+    global here
+
     alt {
         { match {lo\((.*)\)} $exp arg
             set v [eat-expr $arg]
@@ -132,6 +128,10 @@ proc eat-expr {exp} {
             set v [eat-expr $arg]
             return [high $v] }
         { set v [eat-const $exp]; return [list K $v] }
+        { match {([0-9])b} $exp h;
+            return [list V "here$h.$here($h)" 0] }
+        { match {([0-9])f} $exp h;
+            return [list V "here$h.[expr {$here($h)+1}]" 0] }
         { match {[A-Za-z][A-Za-z0-9]*} $exp
             return [list V $exp 0] }
         { match {(.+)([+-])(.+)} $exp e1 op e2
@@ -478,7 +478,15 @@ proc label {label} {
 }
 
 proc unknown {cmd args} {
-    if {[regexp {(.*):$} $cmd _ label]} {
+    global here
+
+    if {[regexp {^([0-9]):$} $cmd _ h]} {
+        incr here($h)
+        label here$h.$here($h)
+        return
+    }
+
+    if {[regexp {^(.*):$} $cmd _ label]} {
         label $label
         return
     }
